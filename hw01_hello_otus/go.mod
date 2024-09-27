@@ -1,4 +1,4 @@
-module github.com/hw-otus/hw01_hello_otus
+module github.com/evg555/hw-otus/hw01_hello_otus
 
 go 1.23
 
