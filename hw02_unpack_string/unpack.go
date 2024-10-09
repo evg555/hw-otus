@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+	"unicode"
 )
 
 var ErrInvalidString = errors.New("invalid string")
@@ -15,12 +16,18 @@ func Unpack(str string) (string, error) {
 		isPrevNum  bool
 	)
 
-	for i, letter := range str {
-		num, err := strconv.Atoi(string(letter))
+	runes := []rune(str)
 
-		if i == 0 && err == nil {
-			return "", ErrInvalidString
-		}
+	if len(runes) == 0 {
+		return "", nil
+	}
+
+	if unicode.IsNumber(runes[0]) {
+		return "", ErrInvalidString
+	}
+
+	for _, r := range runes {
+		num, err := strconv.Atoi(string(r))
 
 		if err == nil {
 			if isPrevNum {
@@ -34,7 +41,7 @@ func Unpack(str string) (string, error) {
 				sb.WriteString(prevLetter)
 			}
 
-			prevLetter = string(letter)
+			prevLetter = string(r)
 			isPrevNum = false
 		}
 	}
