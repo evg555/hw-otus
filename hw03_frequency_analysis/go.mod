@@ -1,4 +1,4 @@
-module github.com/fevg555/hw-otus/hw03_frequency_analysis
+module github.com/evg555/hw-otus/hw03_frequency_analysis
 
 go 1.23
 
