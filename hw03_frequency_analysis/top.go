@@ -25,22 +25,16 @@ func Top10(str string) []string {
 		keys = append(keys, k)
 	}
 
-	sorted := sortByFreq(keys, mapped)
-
-	if len(sorted) < top {
-		top = len(sorted)
-	}
-
-	return sorted[:top]
-}
-
-func sortByFreq(keys []string, m map[string]int) []string {
 	sort.Slice(keys, func(i, j int) bool {
-		if m[keys[i]] == m[keys[j]] {
+		if mapped[keys[i]] == mapped[keys[j]] {
 			return keys[i] < keys[j]
 		}
-		return m[keys[i]] > m[keys[j]]
+		return mapped[keys[i]] > mapped[keys[j]]
 	})
 
-	return keys
+	if len(keys) < top {
+		top = len(keys)
+	}
+
+	return keys[:top]
 }
