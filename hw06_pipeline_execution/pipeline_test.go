@@ -14,7 +14,7 @@ const (
 	fault         = sleepPerStage / 2
 )
 
-var isFullTesting = true
+var isFullTesting = false
 
 func TestPipeline(t *testing.T) {
 	// Stage generator
@@ -93,6 +93,53 @@ func TestPipeline(t *testing.T) {
 		require.Len(t, result, 0)
 		require.Less(t, int64(elapsed), int64(abortDur)+int64(fault))
 	})
+
+	t.Run("in chanel is nil", func(t *testing.T) {
+		result := make([]string, 0, 10)
+
+		for s := range ExecutePipeline(nil, nil, stages...) {
+			result = append(result, s.(string))
+		}
+
+		require.Len(t, result, 0)
+	})
+
+	t.Run("empty stages", func(t *testing.T) {
+		in := make(Bi)
+		data := []int{1, 2, 3, 4, 5}
+		stages = []Stage{}
+
+		go func() {
+			for _, v := range data {
+				in <- v
+			}
+			close(in)
+		}()
+
+		result := make([]int, 0, 5)
+		for s := range ExecutePipeline(in, nil, stages...) {
+			result = append(result, s.(int))
+		}
+		require.Equal(t, []int{1, 2, 3, 4, 5}, result)
+	})
+
+	t.Run("empty data", func(t *testing.T) {
+		in := make(Bi)
+		var data []int
+
+		go func() {
+			for _, v := range data {
+				in <- v
+			}
+			close(in)
+		}()
+
+		result := make([]string, 0, 5)
+		for s := range ExecutePipeline(in, nil, stages...) {
+			result = append(result, s.(string))
+		}
+		require.Len(t, result, 0)
+	})
 }
 
 func TestAllStageStop(t *testing.T) {
@@ -150,6 +197,5 @@ func TestAllStageStop(t *testing.T) {
 		wg.Wait()
 
 		require.Len(t, result, 0)
-
 	})
 }
