@@ -12,6 +12,7 @@ var (
 	ErrUnsupportedFile       = errors.New("unsupported file")
 	ErrOffsetExceedsFileSize = errors.New("offset exceeds file size")
 	ErrIsDirectory           = errors.New("it is a directory")
+	ErrSamePaths             = errors.New("same paths from and to")
 )
 
 func Copy(fromPath, toPath string, offset, limit int64) error {
@@ -30,8 +31,12 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 		return ErrIsDirectory
 	}
 
-	if srcInfo.Size() == 0 || toPath == "" {
+	if toPath == "" {
 		return ErrUnsupportedFile
+	}
+
+	if fromPath == toPath {
+		return ErrSamePaths
 	}
 
 	if offset > srcInfo.Size() {
@@ -43,6 +48,10 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 		return err
 	}
 	defer dst.Close()
+
+	if srcInfo.Size() == 0 {
+		return nil
+	}
 
 	if offset > 0 {
 		_, err = src.Seek(offset, io.SeekStart)

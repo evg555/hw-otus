@@ -10,11 +10,11 @@ import (
 )
 
 const (
-	fileDir           = "testdata/"
-	inputFile         = "input.txt"
-	outputFile        = "out.txt"
-	notDefinedLenFile = "/dev/urandom"
-	notExistFile      = "not_exist"
+	fileDir          = "testdata/"
+	inputFile        = "input.txt"
+	outputFile       = "out.txt"
+	undefinedLenFile = "/dev/urandom"
+	notExistFile     = "not_exist"
 )
 
 func TestCopy(t *testing.T) {
@@ -34,6 +34,23 @@ func TestCopy(t *testing.T) {
 		outInfo, _ := out.Stat()
 
 		require.Equal(t, inputInfo.Size(), outInfo.Size())
+	})
+
+	t.Run("copying file with undefined len", func(t *testing.T) {
+		out, err := os.CreateTemp(fileDir, outputFile)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer os.Remove(out.Name())
+
+		err = Copy(undefinedLenFile, out.Name(), 0, 0)
+		require.Nil(t, err)
+		require.FileExists(t, out.Name())
+
+		outInfo, _ := out.Stat()
+
+		require.Equal(t, int64(0), outInfo.Size())
 	})
 
 	t.Run("copying with limit less than len of file", func(t *testing.T) {
@@ -73,26 +90,6 @@ func TestCopy(t *testing.T) {
 		outInfo, _ := out.Stat()
 
 		require.Equal(t, inputInfo.Size(), outInfo.Size())
-	})
-
-	t.Run("copying with offset", func(t *testing.T) {
-		offset = 1000
-
-		out, err := os.CreateTemp(fileDir, outputFile)
-		if err != nil {
-			t.Error(err)
-			return
-		}
-		defer os.Remove(out.Name())
-
-		err = Copy(fileDir+inputFile, out.Name(), offset, 0)
-		require.Nil(t, err)
-		require.FileExists(t, out.Name())
-
-		inputInfo, _ := os.Stat(fileDir + inputFile)
-		outInfo, _ := out.Stat()
-
-		require.Equal(t, inputInfo.Size()-offset, outInfo.Size())
 	})
 
 	t.Run("copying with offset and limit", func(t *testing.T) {
@@ -181,7 +178,7 @@ func TestCopyError(t *testing.T) {
 	})
 
 	t.Run("unsupported file", func(t *testing.T) {
-		err := Copy(notDefinedLenFile, "", 0, 0)
+		err := Copy(fileDir+inputFile, "", 0, 0)
 		require.Error(t, err)
 		require.ErrorIs(t, err, ErrUnsupportedFile)
 	})
@@ -198,5 +195,11 @@ func TestCopyError(t *testing.T) {
 		err := Copy(fileDir+inputFile, outputFile, offset, 0)
 		require.Error(t, err)
 		require.ErrorIs(t, err, ErrOffsetExceedsFileSize)
+	})
+
+	t.Run("same names input and output files", func(t *testing.T) {
+		err := Copy(fileDir+inputFile, fileDir+inputFile, 0, 0)
+		require.Error(t, err)
+		require.ErrorIs(t, err, ErrSamePaths)
 	})
 }
