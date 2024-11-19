@@ -166,27 +166,21 @@ func TestCopy(t *testing.T) {
 
 func TestCopyError(t *testing.T) {
 	t.Run("got directory instead file", func(t *testing.T) {
-		err := Copy(fileDir, "", 0, 0)
+		err := Copy(fileDir, outputFile, 0, 0)
 		require.Error(t, err)
-		require.ErrorIs(t, err, ErrIsDirectory)
+		require.ErrorIs(t, err, ErrUnsupportedFile)
 	})
 
-	t.Run("file not exist", func(t *testing.T) {
-		err := Copy(fileDir+notExistFile, "", 0, 0)
+	t.Run("input file not exist", func(t *testing.T) {
+		err := Copy(fileDir+notExistFile, outputFile, 0, 0)
 		require.Error(t, err)
 		require.ErrorIs(t, err, fs.ErrNotExist)
 	})
 
-	t.Run("unsupported file", func(t *testing.T) {
+	t.Run("output file not defined", func(t *testing.T) {
 		err := Copy(fileDir+inputFile, "", 0, 0)
 		require.Error(t, err)
-		require.ErrorIs(t, err, ErrUnsupportedFile)
-	})
-
-	t.Run("out file not defined", func(t *testing.T) {
-		err := Copy(fileDir+inputFile, "", 0, 0)
-		require.Error(t, err)
-		require.ErrorIs(t, err, ErrUnsupportedFile)
+		require.ErrorIs(t, err, fs.ErrNotExist)
 	})
 
 	t.Run("offset more than len of file", func(t *testing.T) {
@@ -197,9 +191,9 @@ func TestCopyError(t *testing.T) {
 		require.ErrorIs(t, err, ErrOffsetExceedsFileSize)
 	})
 
-	t.Run("same names input and output files", func(t *testing.T) {
+	t.Run("same paths of input and output files", func(t *testing.T) {
 		err := Copy(fileDir+inputFile, fileDir+inputFile, 0, 0)
 		require.Error(t, err)
-		require.ErrorIs(t, err, ErrSamePaths)
+		require.ErrorIs(t, err, ErrUnsupportedFile)
 	})
 }

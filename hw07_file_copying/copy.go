@@ -11,12 +11,15 @@ import (
 var (
 	ErrUnsupportedFile       = errors.New("unsupported file")
 	ErrOffsetExceedsFileSize = errors.New("offset exceeds file size")
-	ErrIsDirectory           = errors.New("it is a directory")
-	ErrSamePaths             = errors.New("same paths from and to")
 )
 
 func Copy(fromPath, toPath string, offset, limit int64) error {
-	src, err := os.OpenFile(fromPath, os.O_RDONLY, os.ModePerm)
+	err := validate(fromPath, toPath, offset)
+	if err != nil {
+		return err
+	}
+
+	src, err := os.Open(fromPath)
 	if err != nil {
 		return err
 	}
@@ -27,20 +30,8 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 		return err
 	}
 
-	if srcInfo.IsDir() {
-		return ErrIsDirectory
-	}
-
-	if toPath == "" {
-		return ErrUnsupportedFile
-	}
-
-	if fromPath == toPath {
-		return ErrSamePaths
-	}
-
-	if offset > srcInfo.Size() {
-		return ErrOffsetExceedsFileSize
+	if srcInfo.Size() == 0 {
+		return nil
 	}
 
 	dst, err := os.Create(toPath)
@@ -48,10 +39,6 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 		return err
 	}
 	defer dst.Close()
-
-	if srcInfo.Size() == 0 {
-		return nil
-	}
 
 	if offset > 0 {
 		_, err = src.Seek(offset, io.SeekStart)
@@ -71,6 +58,25 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 	_, err = io.CopyN(dst, barReader, limit)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func validate(fromPath, toPath string, offset int64) error {
+	src, err := os.Stat(fromPath)
+	if err != nil {
+		return err
+	}
+
+	dst, _ := os.Stat(toPath)
+
+	if src.IsDir() || os.SameFile(src, dst) {
+		return ErrUnsupportedFile
+	}
+
+	if offset > src.Size() {
+		return ErrOffsetExceedsFileSize
 	}
 
 	return nil
