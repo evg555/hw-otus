@@ -36,23 +36,6 @@ func TestCopy(t *testing.T) {
 		require.Equal(t, inputInfo.Size(), outInfo.Size())
 	})
 
-	t.Run("copying file with undefined len", func(t *testing.T) {
-		out, err := os.CreateTemp(fileDir, outputFile)
-		if err != nil {
-			t.Error(err)
-			return
-		}
-		defer os.Remove(out.Name())
-
-		err = Copy(undefinedLenFile, out.Name(), 0, 0)
-		require.Nil(t, err)
-		require.FileExists(t, out.Name())
-
-		outInfo, _ := out.Stat()
-
-		require.Equal(t, int64(0), outInfo.Size())
-	})
-
 	t.Run("copying with limit less than len of file", func(t *testing.T) {
 		limit = 1000
 
@@ -193,6 +176,13 @@ func TestCopyError(t *testing.T) {
 
 	t.Run("same paths of input and output files", func(t *testing.T) {
 		err := Copy(fileDir+inputFile, fileDir+inputFile, 0, 0)
+		require.Error(t, err)
+		require.ErrorIs(t, err, ErrUnsupportedFile)
+	})
+
+	t.Run("copying file with undefined len", func(t *testing.T) {
+		err := Copy(undefinedLenFile, outputFile, 0, 0)
+
 		require.Error(t, err)
 		require.ErrorIs(t, err, ErrUnsupportedFile)
 	})

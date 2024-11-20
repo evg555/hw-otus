@@ -30,10 +30,6 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 		return err
 	}
 
-	if srcInfo.Size() == 0 {
-		return nil
-	}
-
 	dst, err := os.Create(toPath)
 	if err != nil {
 		return err
@@ -71,7 +67,7 @@ func validate(fromPath, toPath string, offset int64) error {
 
 	dst, _ := os.Stat(toPath)
 
-	if src.IsDir() || os.SameFile(src, dst) {
+	if src.IsDir() || os.SameFile(src, dst) || !src.Mode().IsRegular() {
 		return ErrUnsupportedFile
 	}
 
