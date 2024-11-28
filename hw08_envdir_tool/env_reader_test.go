@@ -67,4 +67,26 @@ func TestReadDir(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, expected, actual)
 	})
+
+	t.Run("env filename contains =", func(t *testing.T) {
+		testFile, err := os.Create(envDir + "/TEST=")
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer os.Remove(testFile.Name())
+
+		expected := Environment{
+			"BAR":   EnvValue{Value: "bar"},
+			"EMPTY": EnvValue{},
+			"FOO":   EnvValue{Value: "   foo\nwith new line"},
+			"HELLO": EnvValue{Value: "\"hello\""},
+			"UNSET": EnvValue{NeedRemove: true},
+			"TEST":  EnvValue{NeedRemove: true},
+		}
+
+		actual, err := ReadDir(envDir)
+		require.NoError(t, err)
+		require.Equal(t, expected, actual)
+	})
 }

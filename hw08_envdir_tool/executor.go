@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -39,16 +38,15 @@ func RunCmd(cmd []string, env Environment) (returnCode int) {
 
 	command.Env = append(command.Env, os.Environ()...)
 
-	var out bytes.Buffer
-	command.Stdout = &out
-	command.Stderr = &out
+	command.Stdout = os.Stdout
+	command.Stderr = os.Stderr
+	command.Stdin = os.Stdin
 
 	err := command.Run()
 	if err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {
 			if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
-				fmt.Println(out.String())
 				return status.ExitStatus()
 			}
 		}
@@ -57,6 +55,5 @@ func RunCmd(cmd []string, env Environment) (returnCode int) {
 		return 1
 	}
 
-	fmt.Println(out.String())
 	return
 }

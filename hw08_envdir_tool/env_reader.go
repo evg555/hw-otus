@@ -53,8 +53,13 @@ func processFile(dir string, entry fs.DirEntry, env Environment) error {
 		return err
 	}
 
+	key := entry.Name()
+	if strings.Contains(key, "=") {
+		key = strings.ReplaceAll(key, "=", "")
+	}
+
 	if fileInfo.Size() == 0 {
-		env[entry.Name()] = EnvValue{NeedRemove: true}
+		env[key] = EnvValue{NeedRemove: true}
 		return nil
 	}
 
@@ -67,7 +72,7 @@ func processFile(dir string, entry fs.DirEntry, env Environment) error {
 			Value: strings.TrimRight(string(firstLine), " \t"),
 		}
 
-		env[entry.Name()] = envValue
+		env[key] = envValue
 	}
 
 	if err = scanner.Err(); err != nil {

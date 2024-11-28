@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bytes"
+	"io"
 	"os"
 	"testing"
 
@@ -10,53 +10,53 @@ import (
 
 func TestRunCmd(t *testing.T) {
 	t.Run("command not exist", func(t *testing.T) {
+		tempFile, err := os.CreateTemp(envDir, "stdout")
+		require.NoError(t, err)
+		defer os.Remove(tempFile.Name())
+
 		cmd := []string{"not_exist", "arg1", "arg2"}
 		env := Environment{}
-		outExpected := "exec: \"not_exist\": executable file not found in $PATH\n"
+		outExpected := "exec: \"not_exist\": executable file not found in $PATH"
 
-		var buf bytes.Buffer
-		originalStdout := os.Stdout
-
-		r, w, _ := os.Pipe()
-		os.Stdout = w
+		stdout := os.Stdout
+		os.Stdout = tempFile
 
 		exitCode := RunCmd(cmd, env)
 		require.Equal(t, 1, exitCode)
 
-		w.Close()
-		os.Stdout = originalStdout
+		os.Stdout = stdout
 
-		_, err := buf.ReadFrom(r)
-		if err != nil {
-			t.Error()
-		}
-		output := buf.String()
-		require.Equal(t, outExpected, output)
+		_, err = tempFile.Seek(0, 0)
+		require.NoError(t, err)
+		out, err := io.ReadAll(tempFile)
+		require.NoError(t, err)
+
+		require.Contains(t, string(out), outExpected)
 	})
 
 	t.Run("command returns error", func(t *testing.T) {
+		tempFile, err := os.CreateTemp(envDir, "stdout")
+		require.NoError(t, err)
+		defer os.Remove(tempFile.Name())
+
 		cmd := []string{"rm", "/root"}
 		env := Environment{}
-		outExpected := "rm: cannot remove '/root': Is a directory\n\n"
+		outExpected := "rm: cannot remove '/root': Is a directory"
 
-		var buf bytes.Buffer
-		originalStdout := os.Stdout
-
-		r, w, _ := os.Pipe()
-		os.Stdout = w
+		stderr := os.Stderr
+		os.Stderr = tempFile
 
 		exitCode := RunCmd(cmd, env)
 		require.Equal(t, 1, exitCode)
 
-		w.Close()
-		os.Stdout = originalStdout
+		os.Stderr = stderr
 
-		_, err := buf.ReadFrom(r)
-		if err != nil {
-			t.Error()
-		}
-		output := buf.String()
-		require.Equal(t, outExpected, output)
+		_, err = tempFile.Seek(0, 0)
+		require.NoError(t, err)
+		out, err := io.ReadAll(tempFile)
+		require.NoError(t, err)
+
+		require.Contains(t, string(out), outExpected)
 	})
 
 	t.Run("empty command", func(t *testing.T) {
@@ -68,35 +68,39 @@ func TestRunCmd(t *testing.T) {
 	})
 
 	t.Run("empty command params", func(t *testing.T) {
+		tempFile, err := os.CreateTemp(envDir, "stdout")
+		require.NoError(t, err)
+		defer os.Remove(tempFile.Name())
+
 		cmd := []string{"echo"}
 		env := Environment{
 			"FOO": EnvValue{
 				Value: "bar",
 			},
 		}
-		outExpected := "\n\n"
+		outExpected := "\n"
 
-		var buf bytes.Buffer
-		originalStdout := os.Stdout
-
-		r, w, _ := os.Pipe()
-		os.Stdout = w
+		stdout := os.Stdout
+		os.Stdout = tempFile
 
 		exitCode := RunCmd(cmd, env)
 		require.Equal(t, 0, exitCode)
 
-		w.Close()
-		os.Stdout = originalStdout
+		os.Stdout = stdout
 
-		_, err := buf.ReadFrom(r)
-		if err != nil {
-			t.Error()
-		}
-		output := buf.String()
-		require.Equal(t, outExpected, output)
+		_, err = tempFile.Seek(0, 0)
+		require.NoError(t, err)
+		out, err := io.ReadAll(tempFile)
+		require.NoError(t, err)
+
+		require.Equal(t, outExpected, string(out))
 	})
 
 	t.Run("with replace and remove env values", func(t *testing.T) {
+		tempFile, err := os.CreateTemp(envDir, "stdout")
+		require.NoError(t, err)
+		defer os.Remove(tempFile.Name())
+
 		os.Setenv("HELLO", "SHOULD_REPLACE")
 		os.Setenv("FOO", "SHOULD_REPLACE")
 		os.Setenv("UNSET", "SHOULD_REMOVE")
@@ -119,26 +123,21 @@ UNSET is ()
 ADDED is (from original env)
 EMPTY is ()
 arguments are arg1=1 arg2=2
-
 `
 
-		var buf bytes.Buffer
-		originalStdout := os.Stdout
-
-		r, w, _ := os.Pipe()
-		os.Stdout = w
+		stdout := os.Stdout
+		os.Stdout = tempFile
 
 		exitCode := RunCmd(cmd, env)
 		require.Equal(t, 0, exitCode)
 
-		w.Close()
-		os.Stdout = originalStdout
+		os.Stdout = stdout
 
-		_, err := buf.ReadFrom(r)
-		if err != nil {
-			t.Error()
-		}
-		output := buf.String()
-		require.Equal(t, outExpected, output)
+		_, err = tempFile.Seek(0, 0)
+		require.NoError(t, err)
+		out, err := io.ReadAll(tempFile)
+		require.NoError(t, err)
+
+		require.Contains(t, string(out), outExpected)
 	})
 }
