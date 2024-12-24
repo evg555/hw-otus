@@ -44,6 +44,18 @@ func TestGetDomainStat(t *testing.T) {
 		require.Error(t, err)
 		require.Nil(t, result)
 	})
+
+	t.Run("domain in first part of email", func(t *testing.T) {
+		result, err := GetDomainStat(bytes.NewBufferString(`{"Id":1,"Name":"Howard Mendoza","Username":"0Oliver","Email":"vvv.com@yahoo.net","Phone":"6-866-899-36-79","Password":"InAQJvsq","Address":"Blackbird Place 25"}`), "com")
+		require.NoError(t, err)
+		require.Equal(t, DomainStat{}, result)
+	})
+
+	t.Run("invalid email", func(t *testing.T) {
+		result, err := GetDomainStat(bytes.NewBufferString(`{"Id":1,"Name":"Howard Mendoza","Username":"0Oliver","Email":"yahoo.com","Phone":"6-866-899-36-79","Password":"InAQJvsq","Address":"Blackbird Place 25"}`), "com")
+		require.Error(t, err)
+		require.Nil(t, result)
+	})
 }
 
 func BenchmarkGetDomainStat(b *testing.B) {
