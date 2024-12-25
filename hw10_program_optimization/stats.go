@@ -4,19 +4,12 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"regexp"
 	"strings"
 )
 
 //easyjson:json
 type User struct {
-	ID       int
-	Name     string
-	Username string
-	Email    string
-	Phone    string
-	Password string
-	Address  string
+	Email string
 }
 
 type DomainStat map[string]int
@@ -25,18 +18,13 @@ func GetDomainStat(r io.Reader, domain string) (DomainStat, error) {
 	result := make(DomainStat)
 	scanner := bufio.NewScanner(r)
 
-	pattern, err := regexp.Compile("\\." + domain + "$")
-	if err != nil {
-		return nil, err
-	}
-
 	for scanner.Scan() {
 		var user User
-		if err = user.UnmarshalJSON(scanner.Bytes()); err != nil {
+		if err := user.UnmarshalJSON(scanner.Bytes()); err != nil {
 			return nil, err
 		}
 
-		matched := pattern.MatchString(user.Email)
+		matched := strings.HasSuffix(user.Email, "."+domain)
 
 		if matched {
 			emailParts := strings.SplitN(user.Email, "@", 2)
@@ -51,7 +39,7 @@ func GetDomainStat(r io.Reader, domain string) (DomainStat, error) {
 		}
 	}
 
-	if err = scanner.Err(); err != nil {
+	if err := scanner.Err(); err != nil {
 		return nil, err
 	}
 
