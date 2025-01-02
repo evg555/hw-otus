@@ -8,19 +8,15 @@ import (
 	"net"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 )
 
-const (
-	defaultTimeout = 10 * time.Second
-)
+const defaultTimeout = 10 * time.Second
 
-var (
-	ErrConnTimeout            = errors.New("connection timed out")
-	ErrReceiveTerminateSignal = errors.New("received terminate signal, connection closed")
-)
+var ErrReceiveTerminateSignal = errors.New("received terminate signal, connection closed")
 
 func main() {
 	var timeout time.Duration
@@ -37,10 +33,7 @@ func main() {
 	port := flag.Arg(1)
 	address := net.JoinHostPort(host, port)
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
 	client := NewTelnetClient(address, timeout, os.Stdin, os.Stdout)
@@ -57,47 +50,34 @@ func main() {
 	sendCh := sendRoutine(client)
 	receiveCh := receiveRoutine(client)
 
-	wg := sync.WaitGroup{}
-	wg.Add(2)
+	g, ctx := errgroup.WithContext(ctx)
 
 	// sender
-	go func() {
-		defer wg.Done()
-		for {
-			select {
-			case <-ctx.Done():
-				if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-					fmt.Fprintln(os.Stderr, ErrConnTimeout)
-				} else {
-					fmt.Fprintln(os.Stderr, ErrReceiveTerminateSignal)
-				}
-
-				return
-			case err = <-sendCh:
-				fmt.Fprintln(os.Stderr, err)
-				client.Close()
-				return
-			}
+	g.Go(func() error {
+		select {
+		case <-ctx.Done():
+			return ErrReceiveTerminateSignal
+		case err = <-sendCh:
+			return err
 		}
-	}()
+	})
 
 	// receiver
-	go func() {
-		defer wg.Done()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case err = <-receiveCh:
-				if !errors.Is(err, ErrConnClosed) {
-					fmt.Fprintln(os.Stderr, err)
-				}
-				return
+	g.Go(func() error {
+		select {
+		case <-ctx.Done():
+			return ErrReceiveTerminateSignal
+		case err = <-receiveCh:
+			if errors.Is(err, ErrConnClosed) {
+				return nil
 			}
+			return err
 		}
-	}()
+	})
 
-	wg.Wait()
+	if err = g.Wait(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+	}
 }
 
 func sendRoutine(client TelnetClient) <-chan error {
