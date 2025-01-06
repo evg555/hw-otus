@@ -1,5 +1,15 @@
 [logger]
 level = "INFO"
+format = "text"
 
-# TODO
-# ...
+[app]
+host = "localhost"
+port = "8080"
+storage = "memory"
+
+[database]
+host = "localhost"
+port = "5432"
+dbname = "hw"
+user = "dbuser"
+pass = "dbpass"
