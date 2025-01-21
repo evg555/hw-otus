@@ -12,7 +12,7 @@ import (
 	"github.com/evg555/hw-otus/hw12_13_14_15_calendar/internal/app"
 	"github.com/evg555/hw-otus/hw12_13_14_15_calendar/internal/config"
 	"github.com/evg555/hw-otus/hw12_13_14_15_calendar/internal/logger"
-	internalhttp "github.com/evg555/hw-otus/hw12_13_14_15_calendar/internal/server/http"
+	internalserver "github.com/evg555/hw-otus/hw12_13_14_15_calendar/internal/server"
 	internalstorage "github.com/evg555/hw-otus/hw12_13_14_15_calendar/internal/storage"
 	memorystorage "github.com/evg555/hw-otus/hw12_13_14_15_calendar/internal/storage/memory"
 	sqlstorage "github.com/evg555/hw-otus/hw12_13_14_15_calendar/internal/storage/sql"
@@ -48,7 +48,7 @@ func main() {
 	}
 
 	calendar := app.New(logg, storage)
-	server := internalhttp.NewServer(cfg, logg, calendar)
+	server := internalserver.New(cfg, logg, calendar)
 
 	ctx, cancel := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)

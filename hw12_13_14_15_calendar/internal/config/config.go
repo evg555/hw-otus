@@ -25,6 +25,7 @@ type LoggerConf struct {
 }
 
 type AppConf struct {
+	Server  string `mapstructure:"server"`
 	Host    string `mapstructure:"host"`
 	Port    string `mapstructure:"port"`
 	Storage string `mapstructure:"storage"`
