@@ -11,6 +11,6 @@ type Event struct {
 	StartDate        time.Time      `db:"start_date"`
 	EndDate          time.Time      `db:"end_date"`
 	Description      sql.NullString `db:"description"`
-	UserID           string         `db:"user_id"`
+	UserID           sql.NullString `db:"user_id"`
 	NotificationTime time.Duration  `db:"notification_time"`
 }

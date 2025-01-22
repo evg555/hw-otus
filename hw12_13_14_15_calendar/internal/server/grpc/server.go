@@ -1,22 +1,21 @@
-package internalhttp
+package internalgrpc
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
-	"net/http"
-	"time"
 
+	"github.com/evg555/hw-otus/hw12_13_14_15_calendar/api/pb"
 	"github.com/evg555/hw-otus/hw12_13_14_15_calendar/internal/app"
 	"github.com/evg555/hw-otus/hw12_13_14_15_calendar/internal/config"
-	"github.com/gorilla/mux"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 type Server struct {
+	srv    *grpc.Server
 	logger Logger
 	app    Application
-	srv    *http.Server
 	cfg    *config.Config
 }
 
@@ -43,31 +42,26 @@ func NewServer(cfg config.Config, logger Logger, app Application) *Server {
 }
 
 func (s *Server) Start(ctx context.Context) error {
-	r := mux.NewRouter()
+	s.srv = grpc.NewServer(
+		grpc.ChainUnaryInterceptor(s.loggingMiddleware),
+	)
 
-	addr := net.JoinHostPort(s.cfg.App.Host, s.cfg.App.Port)
-	handler := &Handler{
-		router: r,
+	reflection.Register(s.srv)
+	pb.RegisterEventServiceServer(s.srv, Handler{
 		app:    s.app,
 		logger: s.logger,
+	})
+
+	addr := net.JoinHostPort(s.cfg.App.Host, s.cfg.App.Port)
+
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		return err
 	}
 
-	r.HandleFunc("/events", handler.CreateEvent).Methods(http.MethodPost)
-	r.HandleFunc("/events/{id}", handler.UpdateEvent).Methods(http.MethodPut)
-	r.HandleFunc("/events/{id}", handler.DeleteEvent).Methods(http.MethodDelete)
-	r.HandleFunc("/events", handler.ListEvents).Methods(http.MethodGet)
+	s.logger.Info(fmt.Sprintf("grpc server starting at %s", addr))
 
-	r.Use(s.loggingMiddleware)
-
-	s.srv = &http.Server{
-		Addr:              addr,
-		Handler:           handler,
-		ReadHeaderTimeout: 1 * time.Second,
-	}
-
-	s.logger.Info(fmt.Sprintf("http server starting at %s", addr))
-
-	if err := s.srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+	if err = s.srv.Serve(listener); err != nil {
 		return err
 	}
 
@@ -75,7 +69,8 @@ func (s *Server) Start(ctx context.Context) error {
 	return nil
 }
 
-func (s *Server) Stop(ctx context.Context) error {
+func (s *Server) Stop(_ context.Context) error {
 	s.logger.Info("server stopping...")
-	return s.srv.Shutdown(ctx)
+	s.srv.Stop()
+	return nil
 }

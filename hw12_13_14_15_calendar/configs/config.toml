@@ -3,6 +3,7 @@ level = "INFO"
 format = "text"
 
 [app]
+server = "http"
 host = "localhost"
 port = "8080"
 storage = "memory"

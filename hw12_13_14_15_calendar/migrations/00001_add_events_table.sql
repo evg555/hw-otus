@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS events (
     end_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     description TEXT,
     user_id UUID,
-    notification_time INT
+    notification_time BIGINT
 );
 
 -- +goose Down
