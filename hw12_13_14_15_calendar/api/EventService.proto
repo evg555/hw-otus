@@ -11,7 +11,7 @@ message Event {
   string end_date = 4;
   string description = 5;
   string user_id = 6;
-  string notification_time = 7;
+  int32 notify_days = 7;
 }
 
 service EventService {

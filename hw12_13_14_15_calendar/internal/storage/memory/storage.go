@@ -104,6 +104,40 @@ func (s *Storage) ListEventsForMonth(_ context.Context, date time.Time) ([]*stor
 	return events, nil
 }
 
+func (s *Storage) ListEventsForNotify(_ context.Context, date time.Time) ([]*storage.Event, error) {
+	var events []*storage.Event
+
+	s.mu.RLock()
+	for _, event := range s.m {
+		if event.NotifyDays.Int32 == 0 {
+			continue
+		}
+
+		needNotifyDate := date.Add(time.Duration(event.NotifyDays.Int32) * 24 * time.Hour).Format("2006-01-02")
+
+		if needNotifyDate == event.StartDate.Format("2006-01-02") {
+			events = append(events, &event)
+		}
+	}
+	s.mu.RUnlock()
+
+	return events, nil
+}
+
+func (s *Storage) DeleteOldEvents(_ context.Context, date time.Time) error {
+	oldDate := date.Add(-(365 * 24 * time.Hour))
+
+	s.mu.Lock()
+	for _, event := range s.m {
+		if event.EndDate.Before(oldDate) {
+			delete(s.m, event.ID)
+		}
+	}
+	s.mu.Unlock()
+
+	return nil
+}
+
 func (s *Storage) Close(_ context.Context) error {
 	return nil
 }

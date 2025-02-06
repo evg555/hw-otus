@@ -1,0 +1,9 @@
+[logger]
+level = "INFO"
+format = "text"
+
+[rabbit]
+host = "localhost"
+port = "5672"
+user = "guest"
+pass = "guest"

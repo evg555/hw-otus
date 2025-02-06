@@ -17,6 +17,7 @@ type Config struct {
 	Logger   LoggerConf `mapstructure:"logger"`
 	App      AppConf    `mapstructure:"app"`
 	Database DBConf     `mapstructure:"database"`
+	Rabbit   RabbitConf `mapstructure:"rabbit"`
 }
 
 type LoggerConf struct {
@@ -37,6 +38,13 @@ type DBConf struct {
 	DBName string `mapstructure:"dbname"`
 	User   string `mapstructure:"user"`
 	Pass   string `mapstructure:"pass"`
+}
+
+type RabbitConf struct {
+	Host string `mapstructure:"host"`
+	Port string `mapstructure:"port"`
+	User string `mapstructure:"user"`
+	Pass string `mapstructure:"pass"`
 }
 
 func NewConfig() Config {

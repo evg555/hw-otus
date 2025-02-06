@@ -2,7 +2,6 @@ package internalgrpc
 
 import (
 	"context"
-	"time"
 
 	"github.com/evg555/hw-otus/hw12_13_14_15_calendar/api/pb"
 	"github.com/evg555/hw-otus/hw12_13_14_15_calendar/internal/app"
@@ -35,16 +34,7 @@ func (h Handler) UpdateEvent(ctx context.Context, req *pb.UpdateRequest) (*pb.Re
 		EndDate:     req.GetEvent().GetEndDate(),
 		Description: req.GetEvent().GetDescription(),
 		UserID:      req.GetEvent().GetUserId(),
-	}
-
-	if req.GetEvent().GetNotificationTime() != "" {
-		notificationTime, err := time.ParseDuration(req.GetEvent().GetNotificationTime())
-		if err != nil {
-			h.logger.Error(err.Error())
-			return renderErrorResponse(err), err
-		}
-
-		event.NotificationTime = notificationTime
+		NotifyDays:  req.GetEvent().GetNotifyDays(),
 	}
 
 	err := h.app.UpdateEvent(ctx, id, event)
@@ -82,13 +72,13 @@ func (h Handler) ListEvents(ctx context.Context, req *pb.ListRequest) (*pb.ListR
 
 	for _, event := range events {
 		resp.Events = append(resp.Events, &pb.Event{
-			Id:               event.ID,
-			Title:            event.Title,
-			StartDate:        event.StartDate,
-			EndDate:          event.EndDate,
-			Description:      event.Description,
-			UserId:           event.UserID,
-			NotificationTime: event.NotificationTime.String(),
+			Id:          event.ID,
+			Title:       event.Title,
+			StartDate:   event.StartDate,
+			EndDate:     event.EndDate,
+			Description: event.Description,
+			UserId:      event.UserID,
+			NotifyDays:  event.NotifyDays,
 		})
 	}
 
