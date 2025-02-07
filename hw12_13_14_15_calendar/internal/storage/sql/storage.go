@@ -48,8 +48,8 @@ func (s *Storage) Close(_ context.Context) error {
 }
 
 func (s *Storage) CreateEvent(ctx context.Context, event storage.Event) error {
-	query := `INSERT INTO events (uuid, title, start_date, end_date, description, user_id, notification_time)
-    			VALUES (:uuid, :title, :start_date, :end_date, :description, :user_id, :notification_time)`
+	query := `INSERT INTO events (uuid, title, start_date, end_date, description, user_id, notify_days)
+    			VALUES (:uuid, :title, :start_date, :end_date, :description, :user_id, :notify_days)`
 
 	_, err := s.db.NamedExecContext(ctx, query, event)
 	if err != nil {
@@ -63,7 +63,7 @@ func (s *Storage) UpdateEvent(ctx context.Context, id string, event storage.Even
 	event.ID = id
 
 	query := `UPDATE events SET title=:title, start_date=:start_date, end_date=:end_date, description=:description, 
-                  user_id=:user_id, notification_time=:notification_time WHERE uuid = :uuid`
+                  user_id=:user_id, notify_days=:notify_days WHERE uuid = :uuid`
 
 	_, err := s.db.NamedExecContext(ctx, query, event)
 	if err != nil {
@@ -85,7 +85,7 @@ func (s *Storage) DeleteEvent(ctx context.Context, event storage.Event) error {
 }
 
 func (s *Storage) ListEventsForDay(ctx context.Context, date time.Time) ([]*storage.Event, error) {
-	query := `SELECT uuid, title, start_date, end_date, description, user_id, notification_time 
+	query := `SELECT uuid, title, start_date, end_date, description, user_id, notify_days
 				FROM events WHERE start_date::DATE = $1`
 
 	stmt, err := s.db.Preparex(query)
@@ -108,7 +108,7 @@ func (s *Storage) ListEventsForWeek(ctx context.Context, date time.Time) ([]*sto
 	startOfWeek := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
 	endOfWeek := startOfWeek.AddDate(0, 0, 6)
 
-	query := `SELECT uuid, title, start_date, end_date, description, user_id, notification_time 
+	query := `SELECT uuid, title, start_date, end_date, description, user_id, notify_days 
 				FROM events WHERE start_date::DATE between $1 and $2`
 
 	stmt, err := s.db.Preparex(query)
@@ -131,7 +131,7 @@ func (s *Storage) ListEventsForMonth(ctx context.Context, date time.Time) ([]*st
 	startOfMonth := time.Date(date.Year(), date.Month(), 1, 0, 0, 0, 0, date.Location())
 	endOfMonth := startOfMonth.AddDate(0, 1, -1)
 
-	query := `SELECT uuid, title, start_date, end_date, description, user_id, notification_time 
+	query := `SELECT uuid, title, start_date, end_date, description, user_id, notify_days
 				FROM events WHERE start_date::DATE between $1 and $2`
 
 	stmt, err := s.db.Preparex(query)
@@ -148,4 +148,37 @@ func (s *Storage) ListEventsForMonth(ctx context.Context, date time.Time) ([]*st
 	}
 
 	return events, nil
+}
+
+func (s *Storage) ListEventsForNotify(ctx context.Context, date time.Time) ([]*storage.Event, error) {
+	query := `SELECT uuid, title, start_date, user_id FROM events
+				WHERE start_date::DATE = ($1::TIMESTAMP + INTERVAL '1 day' * notify_days)::DATE`
+
+	stmt, err := s.db.Preparex(query)
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+
+	var events []*storage.Event
+
+	err = stmt.SelectContext(ctx, &events, date)
+	if err != nil {
+		return nil, err
+	}
+
+	return events, nil
+}
+
+func (s *Storage) DeleteOldEvents(ctx context.Context, date time.Time) error {
+	oneYearAgo := date.AddDate(-1, 0, 0)
+
+	query := `DELETE FROM events WHERE end_date < $1`
+
+	_, err := s.db.ExecContext(ctx, query, oneYearAgo)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

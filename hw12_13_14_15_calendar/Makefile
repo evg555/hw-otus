@@ -1,4 +1,6 @@
-BIN := "./bin/calendar"
+CALENDAR := "./bin/calendar"
+SCHEDULER = "./bin/calendar_scheduler"
+SENDER = "./bin/calendar_sender"
 DOCKER_IMG="calendar:develop"
 
 GIT_HASH := $(shell git log --format="%h" -n 1)
@@ -13,10 +15,12 @@ ifneq (,$(wildcard .env))
 endif
 
 build:
-	go build -v -o $(BIN) -ldflags "$(LDFLAGS)" ./cmd/calendar
+	go build -v -o $(CALENDAR) -ldflags "$(LDFLAGS)" ./cmd/calendar
+	go build -v -o $(SCHEDULER) -ldflags "$(LDFLAGS)" ./cmd/scheduler
+	go build -v -o $(SENDER) -ldflags "$(LDFLAGS)" ./cmd/sender
 
 run: build
-	$(BIN) -config ./configs/config.toml
+	$(CALENDAR) -config ./configs/calendar_config.toml
 
 build-img:
 	docker build \
@@ -28,7 +32,7 @@ run-img: build-img
 	docker run $(DOCKER_IMG)
 
 version: build
-	$(BIN) version
+	$(CALENDAR) version
 
 test:
 	go test -race ./internal/... ./pkg/...

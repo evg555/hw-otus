@@ -1,0 +1,20 @@
+[logger]
+level = "DEBUG"
+format = "text"
+
+[app]
+storage = "sql"
+run_interval = "1s"
+
+[database]
+host = "localhost"
+port = "5432"
+dbname = "hw"
+user = "dbuser"
+pass = "dbpass"
+
+[rabbit]
+host = "localhost"
+port = "5672"
+user = "guest"
+pass = "guest"

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"time"
 
 	"github.com/evg555/hw-otus/hw12_13_14_15_calendar/internal/app"
 	"github.com/gorilla/mux"
@@ -81,16 +80,7 @@ func (h *Handler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 		EndDate:     req.EndDate,
 		Description: req.Description,
 		UserID:      req.UserID,
-	}
-
-	if req.NotificationTime != "" {
-		notificationTime, err := time.ParseDuration(req.NotificationTime)
-		if err != nil {
-			h.logger.Error(err.Error())
-			renderErrorResponse(w, http.StatusBadRequest, err)
-		}
-
-		event.NotificationTime = notificationTime
+		NotifyDays:  req.NotifyDays,
 	}
 
 	err = h.app.UpdateEvent(ctx, id, event)
@@ -139,13 +129,13 @@ func (h *Handler) ListEvents(w http.ResponseWriter, r *http.Request) {
 
 	for _, event := range events {
 		resp.Events = append(resp.Events, Event{
-			ID:               event.ID,
-			Title:            event.Title,
-			StartDate:        event.StartDate,
-			EndDate:          event.EndDate,
-			Description:      event.Description,
-			UserID:           event.UserID,
-			NotificationTime: event.NotificationTime.String(),
+			ID:          event.ID,
+			Title:       event.Title,
+			StartDate:   event.StartDate,
+			EndDate:     event.EndDate,
+			Description: event.Description,
+			UserID:      event.UserID,
+			NotifyDays:  event.NotifyDays,
 		})
 	}
 

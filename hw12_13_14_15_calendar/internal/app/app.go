@@ -39,6 +39,8 @@ type Storage interface {
 	ListEventsForDay(ctx context.Context, date time.Time) ([]*storage.Event, error)
 	ListEventsForWeek(ctx context.Context, date time.Time) ([]*storage.Event, error)
 	ListEventsForMonth(ctx context.Context, date time.Time) ([]*storage.Event, error)
+	ListEventsForNotify(ctx context.Context, date time.Time) ([]*storage.Event, error)
+	DeleteOldEvents(ctx context.Context, date time.Time) error
 	Close(ctx context.Context) error
 }
 
@@ -62,9 +64,12 @@ func (a *App) CreateEvent(ctx context.Context, id string, title string) error {
 
 func (a *App) UpdateEvent(ctx context.Context, id string, domain Event) error {
 	event := storage.Event{
-		ID:               id,
-		Title:            domain.Title,
-		NotificationTime: domain.NotificationTime,
+		ID:    id,
+		Title: domain.Title,
+	}
+
+	if domain.NotifyDays > 0 {
+		event.NotifyDays = sql.NullInt32{Int32: domain.NotifyDays, Valid: true}
 	}
 
 	if domain.StartDate != "" {
@@ -130,7 +135,10 @@ func (a *App) ListEvents(ctx context.Context, date, period string) ([]Event, err
 
 	result := make([]Event, 0, len(events))
 	for _, event := range events {
-		var description, userID string
+		var (
+			description, userID string
+			notifyDays          int32
+		)
 
 		if event.Description.Valid {
 			description = event.Description.String
@@ -140,14 +148,18 @@ func (a *App) ListEvents(ctx context.Context, date, period string) ([]Event, err
 			userID = event.UserID.String
 		}
 
+		if event.NotifyDays.Valid {
+			notifyDays = event.NotifyDays.Int32
+		}
+
 		result = append(result, Event{
-			ID:               event.ID,
-			Title:            event.Title,
-			StartDate:        event.StartDate.Format("2006-01-02 15:04"),
-			EndDate:          event.EndDate.Format("2006-01-02 15:04"),
-			Description:      description,
-			UserID:           userID,
-			NotificationTime: event.NotificationTime,
+			ID:          event.ID,
+			Title:       event.Title,
+			StartDate:   event.StartDate.Format("2006-01-02 15:04"),
+			EndDate:     event.EndDate.Format("2006-01-02 15:04"),
+			Description: description,
+			UserID:      userID,
+			NotifyDays:  notifyDays,
 		})
 	}
 

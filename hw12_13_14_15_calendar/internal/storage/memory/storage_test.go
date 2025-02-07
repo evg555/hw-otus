@@ -2,6 +2,7 @@ package memorystorage
 
 import (
 	"context"
+	"database/sql"
 	"testing"
 	"time"
 
@@ -55,6 +56,22 @@ func TestStorage(t *testing.T) {
 			{ID: "3", StartDate: time.Date(2020, 1, 2, 9, 0, 0, 0, time.UTC)},
 			{ID: "4", StartDate: time.Date(2020, 1, 15, 22, 0, 0, 0, time.UTC)},
 			{ID: "5", StartDate: time.Date(2020, 2, 1, 11, 0, 0, 0, time.UTC)},
+			{
+				ID:        "6",
+				StartDate: time.Date(2020, 1, 6, 0, 0, 0, 0, time.UTC),
+				NotifyDays: sql.NullInt32{
+					Int32: 5,
+					Valid: true,
+				},
+			},
+			{
+				ID:        "7",
+				StartDate: time.Date(2020, 1, 3, 0, 0, 0, 0, time.UTC),
+				NotifyDays: sql.NullInt32{
+					Int32: 2,
+					Valid: true,
+				},
+			},
 		}
 
 		for _, event := range events {
@@ -68,10 +85,14 @@ func TestStorage(t *testing.T) {
 
 		got, err = storage.ListEventsForWeek(ctx, date)
 		require.NoError(t, err)
-		require.Len(t, got, 3)
+		require.Len(t, got, 5)
 
 		got, err = storage.ListEventsForMonth(ctx, date)
 		require.NoError(t, err)
-		require.Len(t, got, 4)
+		require.Len(t, got, 6)
+
+		got, err = storage.ListEventsForNotify(ctx, date)
+		require.NoError(t, err)
+		require.Len(t, got, 2)
 	})
 }
